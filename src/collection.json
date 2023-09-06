@@ -1,0 +1,26 @@
+{
+  "$schema": "../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "ng-add": {
+      "description": "Add the library to the project",
+      "factory": "./ng-add/index",
+      "schema": "./ng-add/schema.json"
+    },
+    "scan": {
+      "description": "Scan project and represent into a json file",
+      "factory": "./ng-generate/scan-project/index#scan",
+      "schema": "./ng-generate/scan-project/schema.json",
+      "aliases": [
+        "s"
+      ]
+    },
+    "build": {
+      "description": "Execute all the schematics in the json file",
+      "factory": "./ng-generate/build/index#executeWorkspaceSchematics",
+      "schema": "./ng-generate/build/schema.json",
+      "aliases": [
+        "b"
+      ]
+    }
+  }
+}

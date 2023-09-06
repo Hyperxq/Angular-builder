@@ -1,2 +1,3 @@
 # Angular-builder
-Angular-builder allows developer scan their projects and represent into a json. Next, they can execute one to many angular schematics.
+Angular-builder allows the developer to scan their projects and represent into a json.
+Next, they can execute from one to many angular schematics.

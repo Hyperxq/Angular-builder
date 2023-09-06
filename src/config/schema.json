@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "settings": {
+      "$ref": "#/definitions/settings"
+    },
+    "projects": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/project"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "projects"
+  ],
+  "patternProperties": {
+    "^(?!settings|projects$).*": {
+      "$ref": "#/definitions/schematic"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "project": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "application",
+            "library"
+          ]
+        },
+        "settings": {
+          "$ref": "#/definitions/settings"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "patternProperties": {
+        ".*": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/folder"
+            },
+            {
+              "$ref": "#/definitions/schematic"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "settings": {
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "object",
+          "patternProperties": {
+            ".*": {
+              "type": "object",
+              "properties": {
+                "alias": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "folder": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "folder"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "patternProperties": {
+        ".*": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/folder"
+            },
+            {
+              "$ref": "#/definitions/schematic"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "schematic": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "schematic"
+          ]
+        },
+        "collection": {
+          "type": "string"
+        },
+        "settings": {
+          "$ref": "#/definitions/settings"
+        },
+        "instances": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,9 @@
+package.json
+package-lock.json
+dist
+node_modules
+.angular
+src/*.d.ts
+src/utils/*.d.ts
+src/utils/**/*.d.ts
+src/**/**/*.d.ts

@@ -1,0 +1,67 @@
+{
+  "$schema": "./schema.json",
+  "settings": {
+    "colection": {
+      "sdfa": {
+        "alias": ""
+      }
+    }
+  },
+  "projects": {
+    "POC-internal-schematics": {
+      "type": "application",
+      "settings": {
+        "@schematics/angular": {
+          "component": {
+            "style": "scss",
+            "standalone": true
+          }
+        }
+      },
+      "src": {
+        "type": "folder",
+        "app": {
+          "type": "folder",
+          "components": {
+            "type": "schematic",
+            "collection": "@schematics/angular",
+            "home": {},
+            "footer": {},
+            "header": {}
+          },
+          "services": {
+            "type": "schematic",
+            "rest-api": {},
+            "auth": {}
+          },
+          "guards": {
+            "type": "schematic",
+            "user-validator": {}
+          }
+        },
+        "assets": {
+          "type": "folder",
+          "component": {
+            "type": "schematic"
+          }
+        }
+      }
+    },
+    "schematics": {
+      "type": "library",
+      "settings": {},
+      "src": {
+        "type": "folder",
+        "ng-generate": {
+          "type": "folder",
+          "component-extended": {
+            "type": "folder"
+          }
+        }
+      }
+    }
+  },
+  "component": {
+    "type": "schematic"
+  }
+}
