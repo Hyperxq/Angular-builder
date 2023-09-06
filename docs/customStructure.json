@@ -1,0 +1,76 @@
+{
+  "$schema": "./node_modules/@danils/schematicskit/lib/schematics/config/schema.json",
+  "settings": {
+    "@schematics/angular": {
+      "component": {
+        "alias": "components",
+        "standalone": true,
+        "skipTests": true,
+        "skipImport": true
+      },
+      "service": {
+        "alias": "services"
+      },
+      "module": {
+        "alias": "modules"
+      },
+      "directive": {
+        "alias": "directives"
+      },
+      "pipe": {
+        "alias": "pipes"
+      },
+      "class": {
+        "alias": "classes"
+      }
+    }
+  },
+  "projects": {
+    "PROJECT-DEMO": {
+      "type": "application",
+      "settings": {
+        "@schematics/angular": {
+          "component": {
+            "style": "scss"
+          }
+        }
+      },
+      "src": {
+        "type": "folder",
+        "app": {
+          "type": "folder"
+        },
+        "assets": {
+          "type": "folder"
+        }
+      }
+    },
+    "schematics": {
+      "type": "library",
+      "settings": {},
+      "src": {
+        "type": "folder",
+        "ng-add": {
+          "type": "folder"
+        },
+        "ng-generate": {
+          "type": "folder"
+        }
+      }
+    },
+    "graphql": {
+      "type": "library",
+      "src": {
+        "type": "folder",
+        "components": {
+          "type": "schematic",
+          "instances": {
+            "test-D": {},
+            "test-E": {},
+            "test-F": {}
+          }
+        }
+      }
+    }
+  }
+}

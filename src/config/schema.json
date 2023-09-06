@@ -114,9 +114,6 @@
             "schematic"
           ]
         },
-        "collection": {
-          "type": "string"
-        },
         "settings": {
           "$ref": "#/definitions/settings"
         },
