@@ -17,7 +17,7 @@ Also, you can execute from one to many angular schematics.
         * [**Projects**](#projects)
       * [**Level 3**](#level-3)
         * [Folder or Schematic?](#folder-or-schematic)
-    * [Settings in different levels priority.](#settings-in-different-levels-priority)
+    * [Priority of settings in different levels.](#priority-of-settings-in-different-levels)
 <!-- TOC -->
 
 

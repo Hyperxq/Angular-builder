@@ -1,7 +1,8 @@
 {
   "name": "@danils/angular-builder",
   "version": "0.0.2",
-  "description": "A blank schematics",
+  "description": "Angular builder",
+  "private": false,
   "scripts": {
     "lint": "eslint . --ext .ts",
     "prettier:check": "prettier --config .prettierrc --check \"src/**/**/*.ts\" --ignore-path ./.prettierignore",
@@ -9,7 +10,7 @@
     "watch": "tsc -p tsconfig.json --watch",
     "build:lib": "ng-packagr -p ng-package.json && npm run build && npm run copy:schematics",
     "copy:schematics": "cpr src dist/lib/schematics --deleteFirst",
-    "publish:lib": "npm run build:lib && cd dist && npm publish",
+    "publish:lib": "npm run build:lib && cd dist && npm publish --access=public",
     "publish:lib-verdaccio": "npm run build:lib && cd dist && npm publish --registry http://localhost:4873",
     "test": "npm run build && ts-node node_modules/jasmine/bin/jasmine jasmine **/*_spec.ts"
   },
@@ -19,7 +20,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Hyperxq/AngularSchematicKit.git"
+    "url": "https://github.com/Hyperxq/Angular-builder"
   },
   "author": "Hyperxq",
   "license": "GNU GENERAL PUBLIC LICENSE",
