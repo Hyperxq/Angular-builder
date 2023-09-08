@@ -23,6 +23,11 @@ export function executeWorkspaceSchematics(): Rule {
       tree,
       './project-structure.json'
     );
+
+    if(!$schema) {
+      throw new SchematicsException('$schema property is required');
+    }
+
     await ensureProjectExists(projects as IProjects, tree, _context);
     calls.push(...executeGlobalSchematicRules(_context, schematics, settings ?? {}));
     calls.push(...(await processProjects(_context, projects, settings, tree)));
