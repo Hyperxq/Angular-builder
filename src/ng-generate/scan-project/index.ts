@@ -2,7 +2,7 @@ import { DirEntry, Rule, SchematicContext, Tree } from '@angular-devkit/schemati
 import { getProjectsIterator, ProjectDefinition, readWorkspace } from '../../utils';
 import { JsonValue } from '@angular-devkit/core/src/json';
 
-const SCHEMA_JSON = './node_modules/@danils/schematicskit/lib/schematics/config/schema.json';
+const SCHEMA_JSON = './node_modules/@danils/angular-builer/lib/schematics/config/schema.json';
 
 export function scan(): Rule {
   return async (tree: Tree, context: SchematicContext) => {
