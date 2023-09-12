@@ -78,6 +78,10 @@
         }
       }
     },
+    "schematic-settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
     "folder": {
       "type": "object",
       "properties": {
@@ -115,7 +119,7 @@
           ]
         },
         "settings": {
-          "$ref": "#/definitions/settings"
+          "$ref": "#/definitions/schematic-settings"
         },
         "instances": {
           "type": "object",

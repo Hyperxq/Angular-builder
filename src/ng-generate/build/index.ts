@@ -82,7 +82,7 @@ async function processProjects(
   const projectKeys = Object.keys(projects);
   projectKeys.forEach((projectName) => {
     let project = getProject(workspace, projectName);
-    const path = project?.root ?? '';
+    const path = project?.root ?? `${workspace.extensions.newProjectRoot}/${projectName}`;
     const { type, settings: projectSettings, ...structures } = projects[projectName];
     Object.entries(structures)
       .map<Structure>((structure) => ({ [structure[0]]: structure[1] } as Structure))
