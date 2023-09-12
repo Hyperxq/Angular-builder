@@ -10,14 +10,13 @@ import {
   Structure,
   WorkspaceStructure,
 } from './build.interfaces';
-import {externalSchematic} from '@angular-devkit/schematics/src/rules/schematic';
 import {RunSchematicTask} from '@angular-devkit/schematics/tasks';
 import {getJsonFile, getProject, readWorkspace} from "../../utils";
+import {TaskId} from "@angular-devkit/schematics/src/engine/interface";
 
 export function executeWorkspaceSchematics(): Rule {
   // { customFilePath }: { customFilePath: string }
   return async (tree: Tree, _context: SchematicContext) => {
-    const calls: Rule[] = [];
 
     const { $schema, settings, projects, ...schematics } = getJsonFile<WorkspaceStructure>(
       tree,
@@ -28,10 +27,10 @@ export function executeWorkspaceSchematics(): Rule {
       throw new SchematicsException('$schema property is required');
     }
 
-    await ensureProjectExists(projects as IProjects, tree, _context);
-    calls.push(...executeGlobalSchematicRules(_context, schematics, settings ?? {}));
-    calls.push(...(await processProjects(_context, projects, settings, tree)));
-    return chain(calls);
+    const parentTaskIds: TaskId[] =  await ensureProjectExists(projects as IProjects, tree, _context);
+    executeGlobalSchematicRules(_context, schematics,parentTaskIds, settings ?? {});
+    await processProjects(_context, projects, settings, tree, parentTaskIds);
+    return chain([]);
   };
 }
 
@@ -39,6 +38,7 @@ async function ensureProjectExists(projects: IProjects, tree: Tree, context: Sch
   const workspace = await readWorkspace(tree);
   const projectNames = Object.keys(projects);
   context.logger.log('info', projectNames.toString());
+  let taskIds: TaskId[] = [];
   for (const projectName of projectNames) {
     let project = getProject(workspace, projectName);
     if (!project) {
@@ -48,9 +48,11 @@ async function ensureProjectExists(projects: IProjects, tree: Tree, context: Sch
         throw new SchematicsException('Type is needed for every project');
       }
       context.logger.info(`Project ${projectName} does not exist, creating...`);
-      context.addTask(new RunSchematicTask('@schematics/angular', type, { name: projectName }));
+      taskIds.push(context.addTask(new RunSchematicTask('@schematics/angular', type, { name: projectName })));
     }
   }
+  context.logger.log('info', `Parents taskIds: ${taskIds.join(', ')}`);
+  return taskIds;
 }
 
 async function processProjects(
@@ -71,9 +73,11 @@ async function processProjects(
       };
     };
   },
-  tree: Tree
+  tree: Tree,
+  parentTasks: TaskId[]
 ) {
-  const calls: Rule[] = [];
+  const taskIds: TaskId[] = [];
+
   const workspace = await readWorkspace(tree);
   const projectKeys = Object.keys(projects);
   projectKeys.forEach((projectName) => {
@@ -83,21 +87,21 @@ async function processProjects(
     Object.entries(structures)
       .map<Structure>((structure) => ({ [structure[0]]: structure[1] } as Structure))
       .forEach((structure: Structure) => {
-        calls.push(
-          ...processStructure(
-            path,
-            {
-              globalSettings: settings ?? {},
-              projectSettings: projectSettings ?? {},
-            },
-            structure,
-            [],
-            _context
-          )
+        taskIds.push(
+            ...processStructure(
+                path,
+                {
+                  globalSettings: settings ?? {},
+                  projectSettings: projectSettings ?? {},
+                },
+                structure,
+                parentTasks,
+                _context
+            )
         );
       });
   });
-  return calls;
+  return taskIds;
 }
 
 /**
@@ -148,37 +152,38 @@ function processStructure(
   path: string,
   parentsSettings: IParentSettings,
   structure: Structure,
-  calls: Rule[] = [],
+  parentTaskIds: TaskId[] = [],
   _context: SchematicContext
 ) {
   const { type, ...content } = structure;
-
+  const currentBranchTaskIds: TaskId[] = [];
   const schematics = extractStructures(
     content as FolderStructure | SchematicStructure,
     'schematic'
   );
 
   schematics.forEach((schematicName) => {
-    calls.push(
-      ...processSchematic(_context, schematicName, content[schematicName], parentsSettings, path)
+    currentBranchTaskIds.push(
+      ...processSchematic(_context, schematicName, content[schematicName], parentsSettings, parentTaskIds, path)
     );
   });
 
   const folderNames = extractStructures(content as FolderStructure | SchematicStructure, 'folder');
 
   folderNames.forEach((folderName) => {
-    calls.push(
-      ...processStructure(
+    // parentTaskIds.push(
+    //   ...
+    // );
+    processStructure(
         `${path}/${folderName}`,
         parentsSettings,
         content[folderName] as Structure,
-        calls,
+        [...currentBranchTaskIds, ...parentTaskIds],
         _context
-      )
-    );
+    )
   });
 
-  return calls;
+  return parentTaskIds;
 }
 
 function processSchematic(
@@ -186,6 +191,7 @@ function processSchematic(
   schematicName: string,
   structure: SchematicStructure,
   parentsSettings: IParentSettings,
+  parentTaskIds: TaskId[] = [],
   path: string
 ) {
   const globalSettings = getSchematicSettingsByAlias(
@@ -216,10 +222,11 @@ function processSchematic(
         projectSettings?.schematicName ??
         schematicName,
       instances,
-      settings: settings,
+      settings: settings
     },
     path,
-    _context
+    _context,
+    parentTaskIds
   );
 }
 
@@ -239,25 +246,26 @@ function executeGlobalSchematicRules(
       [prop: string]: any;
     };
   },
+  parentTaskIds: TaskId[] = [],
   globalSettings?: {
     [key: string]: {
       [prop: string]: any;
     };
-  }
-): Rule[] {
-  const calls: Rule[] = [];
+  },
+
+): TaskId[] {
+  const taskIds: TaskId[] = [];
   for (const [schematicName, content] of Object.entries(schematics)) {
-    calls.push(
-      ...processSchematic(
+    taskIds.push(...processSchematic(
         _context,
         schematicName,
         content as SchematicStructure,
         { globalSettings },
+        parentTaskIds,
         '/'
-      )
-    );
+    ))
   }
-  return calls;
+  return taskIds;
 }
 
 /**
@@ -267,15 +275,17 @@ function executeGlobalSchematicRules(
  * @param schematic - The schematic details.
  * @param path - The path where the schematic should be executed.
  * @param _context - The schematic context.
+ * @param parentTaskIds
  * @returns An array of rules to be executed.
  */
 function executeExternalSchematicRules(
   parentsSettings: ISchematicParentsSettings,
   schematic: ISchematic,
   path: string,
-  _context: SchematicContext
-): Rule[] {
-  const calls: Rule[] = [];
+  _context: SchematicContext,
+  parentTaskIds: TaskId[]
+): TaskId[] {
+  const taskIds: TaskId[] = [];
 
   // Merge settings from various sources
   const settings = {
@@ -293,16 +303,16 @@ function executeExternalSchematicRules(
   }
 
   if (!schematic.instances) {
-    calls.push(createExternalSchematicCall(schematic, path, settings));
+    taskIds.push(createExternalSchematicCall(schematic, path, settings, _context, parentTaskIds));
   } else {
     for (const [name, instanceSettings] of Object.entries(schematic.instances)) {
-      calls.push(
-        createExternalSchematicCall(schematic, path, { ...settings, ...instanceSettings }, name)
+      taskIds.push(
+        createExternalSchematicCall(schematic, path, { ...settings, ...instanceSettings }, _context, parentTaskIds, name)
       );
     }
   }
 
-  return calls;
+  return taskIds;
 }
 
 /**
@@ -311,6 +321,8 @@ function executeExternalSchematicRules(
  * @param schematic - The schematic details.
  * @param path - The path where the schematic should be executed.
  * @param settings - The merged settings.
+ * @param context
+ * @param parentTaskIds
  * @param name - The name of the instance (optional).
  * @returns A rule representing the external schematic call.
  */
@@ -320,11 +332,14 @@ function createExternalSchematicCall(
   settings: {
     [key: string]: any;
   },
-  name?: string
-): Rule {
-  return externalSchematic(schematic.collection!, schematic.schematicName!, {
+  context: SchematicContext,
+  parentTaskIds: TaskId[],
+  name?: string,
+): TaskId {
+  context.logger.info(`Task ids: ${parentTaskIds.join(", ")}`);
+  return context.addTask(new RunSchematicTask(schematic.collection!, schematic.schematicName!, {
     path,
     ...settings,
     ...(name ? { name } : {}),
-  });
+  }), parentTaskIds);
 }
