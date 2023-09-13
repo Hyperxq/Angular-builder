@@ -21,6 +21,11 @@
       "aliases": [
         "b"
       ]
+    },
+    "checkPackages": {
+      "description": "Check collections",
+      "factory": "./ng-generate/check-packages/index#checkPackages",
+      "hidden": true
     }
   }
 }

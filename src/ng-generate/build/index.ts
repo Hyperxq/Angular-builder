@@ -14,7 +14,7 @@ import {RunSchematicTask} from '@angular-devkit/schematics/tasks';
 import {getJsonFile, getProject, readWorkspace} from "../../utils";
 import {TaskId} from "@angular-devkit/schematics/src/engine/interface";
 
-export function executeWorkspaceSchematics(): Rule {
+export function executeWorkspaceSchematics({allowInstallCollections}: {allowInstallCollections: boolean}): Rule {
   // { customFilePath }: { customFilePath: string }
   return async (tree: Tree, _context: SchematicContext) => {
 
@@ -22,22 +22,38 @@ export function executeWorkspaceSchematics(): Rule {
       tree,
       './project-structure.json'
     );
-
     if(!$schema) {
       throw new SchematicsException('$schema property is required');
     }
 
-    const parentTaskIds: TaskId[] =  await ensureProjectExists(projects as IProjects, tree, _context);
+    const collectionTaskIds: TaskId[] = checkCollections(_context, settings, allowInstallCollections);
+    const parentTaskIds: TaskId[] =  await ensureProjectExists(projects as IProjects, tree, _context, collectionTaskIds);
     executeGlobalSchematicRules(_context, schematics,parentTaskIds, settings ?? {});
     await processProjects(_context, projects, settings, tree, parentTaskIds);
     return chain([]);
   };
 }
 
-async function ensureProjectExists(projects: IProjects, tree: Tree, context: SchematicContext) {
+function checkCollections(context: SchematicContext, settings: {[p: string]: {version: string}&{[p: string]: any}}, installCollections:boolean) {
+  let taskId: TaskId | undefined;
+  if( installCollections ) {
+    const collections: {packageName: string; version?: string}[] = [];
+    const collectionPairs = Object.entries(settings);
+    for (const [packageName, collectionContent] of collectionPairs) {
+      const {version} = collectionContent;
+      const collection:{packageName: string; version?: string} = {packageName};
+      if(version) collection.version = version;
+      collections.push(collection);
+    }
+    taskId = context.addTask(new RunSchematicTask('checkPackages', { packages: collections }))
+  }
+
+  return taskId ? [taskId] : [];
+}
+
+async function ensureProjectExists(projects: IProjects, tree: Tree, context: SchematicContext, parentTasks: TaskId[]) {
   const workspace = await readWorkspace(tree);
   const projectNames = Object.keys(projects);
-  context.logger.log('info', projectNames.toString());
   let taskIds: TaskId[] = [];
   for (const projectName of projectNames) {
     let project = getProject(workspace, projectName);
@@ -48,11 +64,10 @@ async function ensureProjectExists(projects: IProjects, tree: Tree, context: Sch
         throw new SchematicsException('Type is needed for every project');
       }
       context.logger.info(`Project ${projectName} does not exist, creating...`);
-      taskIds.push(context.addTask(new RunSchematicTask('@schematics/angular', type, { name: projectName })));
+      taskIds.push(context.addTask(new RunSchematicTask('@schematics/angular', type, { name: projectName, skipPackageJson: true }), parentTasks));
     }
   }
-  context.logger.log('info', `Parents taskIds: ${taskIds.join(', ')}`);
-  return taskIds;
+  return [...parentTasks, ...taskIds];
 }
 
 async function processProjects(

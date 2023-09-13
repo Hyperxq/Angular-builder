@@ -1,12 +1,20 @@
 {
-  "$schema": "./node_modules/@danils/schematicskit/lib/schematics/config/schema.json",
+  "$schema": "./node_modules/@danils/angular-builder/lib/schematics/config/schema.json",
   "settings": {
+    "@danils/schematicskit": {
+      "prettier": {
+        "alias": "prettier"
+      }
+    },
+    "@angular/material": {
+      "address-form": {
+        "alias": "address-form"
+      }
+    },
+    "@angular/cdk": {},
     "@schematics/angular": {
       "component": {
-        "alias": "components",
-        "standalone": true,
-        "skipTests": true,
-        "skipImport": true
+        "alias": "components"
       },
       "service": {
         "alias": "services"
@@ -26,7 +34,7 @@
     }
   },
   "projects": {
-    "PROJECT-DEMO": {
+    "POC-internal-schematics-B": {
       "type": "application",
       "settings": {
         "@schematics/angular": {
@@ -38,7 +46,20 @@
       "src": {
         "type": "folder",
         "app": {
-          "type": "folder"
+          "type": "folder",
+          "components": {
+            "type": "schematic",
+            "settings": {
+              "skipTests": true,
+              "standalone": true,
+              "skipImport": true
+            },
+            "instances": {
+              "test-X": {},
+              "test-Y": {},
+              "test-Z": {}
+            }
+          }
         },
         "assets": {
           "type": "folder"
@@ -50,11 +71,11 @@
       "settings": {},
       "src": {
         "type": "folder",
-        "ng-add": {
-          "type": "folder"
-        },
         "ng-generate": {
-          "type": "folder"
+          "type": "folder",
+          "component-extended": {
+            "type": "folder"
+          }
         }
       }
     },
@@ -64,6 +85,11 @@
         "type": "folder",
         "components": {
           "type": "schematic",
+          "settings": {
+            "standalone": true,
+            "skipTests": true,
+            "skipImport": true
+          },
           "instances": {
             "test-D": {},
             "test-E": {},
@@ -71,6 +97,20 @@
           }
         }
       }
+    }
+  },
+  "components": {
+    "type": "schematic",
+    "settings": {
+      "skipTests": true,
+      "standalone": true,
+      "skipImport": true
+    },
+    "instances": {
+      "test-A": {},
+      "test-B": {},
+      "test-C": {},
+      "test-CC": {}
     }
   }
 }
