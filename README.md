@@ -35,11 +35,12 @@ When you have already installed, follow these steps:
 ## Features
 * Scan and represent your project into a json file.
 * Execute any schematic created with @angular-devkit
-* Choose which collections uninstall.
+* Could install the collection if they are not installed.
+* Could uninstall the collections installed.
 
 ### Coming Features
-* Could uninstall the collections installed.
 * If the schematic doesn't find a workspace, it can create it.
+* Choose which collections uninstall.
 * Allow managing interdependencies between the execution of the schematics.
 * Support Nx.
 
