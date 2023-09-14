@@ -13,8 +13,9 @@ import {
 import {RunSchematicTask} from '@angular-devkit/schematics/tasks';
 import {getJsonFile, getProject, readWorkspace} from "../../utils";
 import {TaskId} from "@angular-devkit/schematics/src/engine/interface";
+import {deepCopy} from "@angular-devkit/core";
 
-export function executeWorkspaceSchematics({allowInstallCollections}: {allowInstallCollections: boolean}): Rule {
+export function executeWorkspaceSchematics({allowInstallCollections, allowUnInstallCollections}: {allowInstallCollections: boolean, allowUnInstallCollections: boolean}): Rule {
   // { customFilePath }: { customFilePath: string }
   return async (tree: Tree, _context: SchematicContext) => {
 
@@ -26,10 +27,11 @@ export function executeWorkspaceSchematics({allowInstallCollections}: {allowInst
       throw new SchematicsException('$schema property is required');
     }
 
-    const collectionTaskIds: TaskId[] = checkCollections(_context, settings, allowInstallCollections);
-    const parentTaskIds: TaskId[] =  await ensureProjectExists(projects as IProjects, tree, _context, collectionTaskIds);
-    executeGlobalSchematicRules(_context, schematics,parentTaskIds, settings ?? {});
-    await processProjects(_context, projects, settings, tree, parentTaskIds);
+    const collectionTaskIds: TaskId[] = checkCollections(_context, deepCopy(settings), allowInstallCollections);
+    const projectsTaskIds: TaskId[] =  await ensureProjectExists(projects as IProjects, tree, _context, collectionTaskIds);
+    const globalSchematicTaskId = executeGlobalSchematicRules(_context, schematics,projectsTaskIds, deepCopy(settings) ?? {});
+    const structureTaskIds = await processProjects(_context, projects, deepCopy(settings), tree, projectsTaskIds);
+    removePackages(_context, deepCopy(settings), allowUnInstallCollections, [...projectsTaskIds, ...globalSchematicTaskId, ...structureTaskIds]);
     return chain([]);
   };
 }
@@ -49,6 +51,30 @@ function checkCollections(context: SchematicContext, settings: {[p: string]: {ve
   }
 
   return taskId ? [taskId] : [];
+}
+function removePackages(
+    context: SchematicContext,
+    settings: {[p: string]: {version: string}&{[p: string]: any}},
+    unInstallCollections:boolean,
+    parentTaskIds: TaskId[] = []
+): TaskId | undefined
+{
+  let taskId: TaskId | undefined;
+  if( unInstallCollections ) {
+    const collections: {packageName: string; version?: string}[] = [];
+    const collectionPairs = Object.entries(settings);
+    for (const [packageName, collectionContent] of collectionPairs) {
+      const {version} = collectionContent;
+      const collection:{packageName: string; version?: string} = {packageName};
+      if(version) collection.version = version;
+      collections.push(collection);
+    }
+    //TODO: check all the flow to prevent that you have duplicated items.
+    const taskIds = removeDuplicates(parentTaskIds);
+    taskId = context.addTask(new RunSchematicTask('uninstallPackages', { packages: collections }), taskIds);
+  }
+
+  return taskId;
 }
 
 async function ensureProjectExists(projects: IProjects, tree: Tree, context: SchematicContext, parentTasks: TaskId[]) {
@@ -186,16 +212,16 @@ function processStructure(
   const folderNames = extractStructures(content as FolderStructure | SchematicStructure, 'folder');
 
   folderNames.forEach((folderName) => {
-    // parentTaskIds.push(
-    //   ...
-    // );
-    processStructure(
-        `${path}/${folderName}`,
-        parentsSettings,
-        content[folderName] as Structure,
-        [...currentBranchTaskIds, ...parentTaskIds],
-        _context
-    )
+    parentTaskIds.push(
+      ...processStructure(
+          `${path}/${folderName}`,
+          parentsSettings,
+          content[folderName] as Structure,
+          [...currentBranchTaskIds, ...parentTaskIds],
+          _context
+      )
+    );
+
   });
 
   return parentTaskIds;
@@ -351,10 +377,23 @@ function createExternalSchematicCall(
   parentTaskIds: TaskId[],
   name?: string,
 ): TaskId {
-  context.logger.info(`Task ids: ${parentTaskIds.join(", ")}`);
   return context.addTask(new RunSchematicTask(schematic.collection!, schematic.schematicName!, {
     path,
     ...settings,
     ...(name ? { name } : {}),
   }), parentTaskIds);
+}
+
+function removeDuplicates(tasks: TaskId[]): TaskId[] {
+  const uniqueTaskIds = new Set<number>();
+  const uniqueTasks: TaskId[] = [];
+
+  for (const task of tasks) {
+    if (!uniqueTaskIds.has(task.id)) {
+      uniqueTaskIds.add(task.id);
+      uniqueTasks.push(task);
+    }
+  }
+
+  return uniqueTasks;
 }

@@ -3,33 +3,45 @@ Angular-builder allows you as a developer to scan their projects and represent i
 Also, you can execute from one to many angular schematics.
 
 
-<!-- TOC -->
 * [Angular-builder Documentation](#angular-builder-documentation)
   * [How to use this schematics' package](#how-to-use-this-schematics-package)
+  * [Features](#features)
+    * [Next Features](#coming-features)
   * [Scan your project](#scan-your-project)
     * [Problem to solve?](#problem-to-solve)
   * [Builder](#builder)
     * [Problem to solve?](#problem-to-solve-1)
     * [Analyze the json structure](#analyze-the-json-structure)
-      * [**Level 1**](#level-1)
-      * [**Level 2**](#level-2)
-        * [**Settings**](#settings)
-        * [**Projects**](#projects)
-      * [**Level 3**](#level-3)
+      * [**JSON Level 1**](#level-1)
+      * [**JSON Level 2**](#level-2)
+        * [Settings](#settings)
+        * [Projects](#projects)
+      * [**JSON Level 3**](#level-3)
         * [Folder or Schematic?](#folder-or-schematic)
     * [Priority of settings in different levels.](#priority-of-settings-in-different-levels)
-<!-- TOC -->
+
 
 
 ## How to use this schematics' package
-<code>ng add @danils/angular-builder</code>
+<code>ng add @danils/angular-builder</code> or <code>npm install -g @danils/angular-builder</code>
 
 
 When you have already installed, follow these steps:
 1. Execute <code>ng g @danils/angular-builder:**scan**</code>
 2. Modify the json created.
 3. Execute <code>ng g @danils/angular-builder:**build**</code>
+4. If the collections are not installed, angular-builder can install them.
 
+## Features
+* Scan and represent your project into a json file.
+* Execute any schematic created with @angular-devkit
+* Choose which collections uninstall.
+
+### Coming Features
+* Could uninstall the collections installed.
+* If the schematic doesn't find a workspace, it can create it.
+* Allow managing interdependencies between the execution of the schematics.
+* Support Nx.
 
 ## Scan your project
 
@@ -79,6 +91,9 @@ For example, **@schematics/angular** are the collection for default schematics l
 
 Every collection has schematics, in this section you can set all the properties that the schematic allows.
 I will list some of the most common schematics with links to see the angular default schematic settings.
+
+**Notes:**<br/>
+If you want that the schematic build installs collections, add these collections to global settings. No matter if you don't define any schematic inside.
 
 | Schematics for @schematics/angular                                                                              |
 |-----------------------------------------------------------------------------------------------------------------|

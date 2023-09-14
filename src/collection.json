@@ -26,6 +26,11 @@
       "description": "Check collections",
       "factory": "./ng-generate/check-packages/index#checkPackages",
       "hidden": true
+    },
+    "uninstallPackages": {
+      "description": "Uninstall collections",
+      "factory": "./ng-generate/uninstall-packages/index#uninstallPackages",
+      "hidden": true
     }
   }
 }

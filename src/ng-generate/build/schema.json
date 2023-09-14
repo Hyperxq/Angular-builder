@@ -11,6 +11,12 @@
       "description": "Allows to install collections when they don't already installed",
       "default": true,
       "x-prompt": "Do you want to install the collections if they are not already installed?"
+    },
+    "allowUnInstallCollections": {
+      "type": "boolean",
+      "description": "Allows to uninstall collections after the process has finished",
+      "default": false,
+      "x-prompt": "Do you want to uninstall the collections after the process has finished?"
     }
   }
 }
