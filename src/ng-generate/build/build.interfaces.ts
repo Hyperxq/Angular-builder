@@ -91,3 +91,11 @@ export type FolderStructure = {
   type: 'folder';
   [key: string]: FolderStructure | SchematicStructure | string;
 };
+
+export type SettingsCached = {
+  [projectName: string]: { [schematicName: string]: ISchematicSettings };
+} & {
+  global?: {
+    [schematicName: string]: ISchematicSettings;
+  };
+};

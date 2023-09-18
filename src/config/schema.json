@@ -61,14 +61,14 @@
     },
     "settings": {
       "type": "object",
-      "properties": {
-        "version": {
-          "type": "string"
-        }
-      },
       "patternProperties": {
         ".*": {
           "type": "object",
+          "properties": {
+            "version": {
+              "type": "string"
+            }
+          },
           "patternProperties": {
             ".*": {
               "type": "object",

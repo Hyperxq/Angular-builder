@@ -1,6 +1,13 @@
-import {chain, Rule, SchematicContext, SchematicsException, Tree,} from '@angular-devkit/schematics';
+import {
+  chain,
+  Rule,
+  SchematicContext,
+  SchematicsException,
+  Tree,
+} from '@angular-devkit/schematics';
 import {
   FolderStructure,
+  SettingsCached,
   IParentSettings,
   IProjects,
   ISchematic,
@@ -10,87 +17,143 @@ import {
   Structure,
   WorkspaceStructure,
 } from './build.interfaces';
-import {RunSchematicTask} from '@angular-devkit/schematics/tasks';
-import {getJsonFile, getProject, readWorkspace} from "../../utils";
-import {TaskId} from "@angular-devkit/schematics/src/engine/interface";
-import {deepCopy} from "@angular-devkit/core";
+import { RunSchematicTask } from '@angular-devkit/schematics/tasks';
+import { getJsonFile, getProject, readWorkspace } from '../../utils';
+import { TaskId } from '@angular-devkit/schematics/src/engine/interface';
+import { deepCopy } from '@angular-devkit/core';
+import { Spinner } from '../../utils/spinner';
+import { colors } from '../../utils/color';
 
-export function executeWorkspaceSchematics({allowInstallCollections, allowUnInstallCollections}: {allowInstallCollections: boolean, allowUnInstallCollections: boolean}): Rule {
+export function executeWorkspaceSchematics({
+  allowInstallCollections,
+  allowUnInstallCollections,
+}: {
+  allowInstallCollections: boolean;
+  allowUnInstallCollections: boolean;
+}): Rule {
   // { customFilePath }: { customFilePath: string }
   return async (tree: Tree, _context: SchematicContext) => {
-
     const { $schema, settings, projects, ...schematics } = getJsonFile<WorkspaceStructure>(
       tree,
-      './project-structure.json'
+      './project-structure.json',
     );
-    if(!$schema) {
+    if (!$schema) {
       throw new SchematicsException('$schema property is required');
     }
 
-    const collectionTaskIds: TaskId[] = checkCollections(_context, deepCopy(settings), allowInstallCollections);
-    const projectsTaskIds: TaskId[] =  await ensureProjectExists(projects as IProjects, tree, _context, collectionTaskIds);
-    const globalSchematicTaskId = executeGlobalSchematicRules(_context, schematics,projectsTaskIds, deepCopy(settings) ?? {});
-    const structureTaskIds = await processProjects(_context, projects, deepCopy(settings), tree, projectsTaskIds);
-    removePackages(_context, deepCopy(settings), allowUnInstallCollections, [...projectsTaskIds, ...globalSchematicTaskId, ...structureTaskIds]);
+    const collectionTaskIds: TaskId[] = checkCollections(
+      _context,
+      deepCopy(settings),
+      allowInstallCollections,
+    );
+    const projectsTaskIds: TaskId[] = await ensureProjectExists(
+      projects as IProjects,
+      tree,
+      _context,
+      collectionTaskIds,
+    );
+    const globalSchematicTaskId = executeGlobalSchematicRules(
+      _context,
+      schematics,
+      projectsTaskIds,
+      deepCopy(settings) ?? {},
+    );
+    const structureTaskIds = await processProjects(
+      _context,
+      projects,
+      deepCopy(settings),
+      tree,
+      projectsTaskIds,
+    );
+    removePackages(_context, deepCopy(settings), allowUnInstallCollections, [
+      ...projectsTaskIds,
+      ...globalSchematicTaskId,
+      ...structureTaskIds,
+    ]);
     return chain([]);
   };
 }
 
-function checkCollections(context: SchematicContext, settings: {[p: string]: {version: string}&{[p: string]: any}}, installCollections:boolean) {
+function checkCollections(
+  context: SchematicContext,
+  settings: { [p: string]: { version: string } & { [p: string]: any } },
+  installCollections: boolean,
+) {
   let taskId: TaskId | undefined;
-  if( installCollections ) {
-    const collections: {packageName: string; version?: string}[] = [];
+  if (installCollections) {
+    const collections: { packageName: string; version?: string }[] = [];
     const collectionPairs = Object.entries(settings);
     for (const [packageName, collectionContent] of collectionPairs) {
-      const {version} = collectionContent;
-      const collection:{packageName: string; version?: string} = {packageName};
-      if(version) collection.version = version;
+      const { version } = collectionContent;
+      const collection: { packageName: string; version?: string } = { packageName };
+      if (version) collection.version = version;
       collections.push(collection);
     }
-    taskId = context.addTask(new RunSchematicTask('checkPackages', { packages: collections }))
+    taskId = context.addTask(new RunSchematicTask('checkPackages', { packages: collections }));
   }
 
   return taskId ? [taskId] : [];
 }
 function removePackages(
-    context: SchematicContext,
-    settings: {[p: string]: {version: string}&{[p: string]: any}},
-    unInstallCollections:boolean,
-    parentTaskIds: TaskId[] = []
-): TaskId | undefined
-{
+  context: SchematicContext,
+  settings: { [p: string]: { version: string } & { [p: string]: any } },
+  unInstallCollections: boolean,
+  parentTaskIds: TaskId[] = [],
+): TaskId | undefined {
   let taskId: TaskId | undefined;
-  if( unInstallCollections ) {
-    const collections: {packageName: string; version?: string}[] = [];
+  if (unInstallCollections) {
+    const collections: { packageName: string; version?: string }[] = [];
     const collectionPairs = Object.entries(settings);
     for (const [packageName, collectionContent] of collectionPairs) {
-      const {version} = collectionContent;
-      const collection:{packageName: string; version?: string} = {packageName};
-      if(version) collection.version = version;
+      const { version } = collectionContent;
+      const collection: { packageName: string; version?: string } = { packageName };
+      if (version) collection.version = version;
       collections.push(collection);
     }
     //TODO: check all the flow to prevent that you have duplicated items.
     const taskIds = removeDuplicates(parentTaskIds);
-    taskId = context.addTask(new RunSchematicTask('uninstallPackages', { packages: collections }), taskIds);
+    taskId = context.addTask(
+      new RunSchematicTask('uninstallPackages', { packages: collections }),
+      taskIds,
+    );
   }
 
   return taskId;
 }
 
-async function ensureProjectExists(projects: IProjects, tree: Tree, context: SchematicContext, parentTasks: TaskId[]) {
+async function ensureProjectExists(
+  projects: IProjects,
+  tree: Tree,
+  context: SchematicContext,
+  parentTasks: TaskId[],
+) {
   const workspace = await readWorkspace(tree);
   const projectNames = Object.keys(projects);
-  let taskIds: TaskId[] = [];
+  const taskIds: TaskId[] = [];
   for (const projectName of projectNames) {
-    let project = getProject(workspace, projectName);
+    const spinner = new Spinner();
+    spinner.start(`Checking ${colors.bgBlue(projectName)} project...`);
+    const project = getProject(workspace, projectName);
     if (!project) {
+      spinner.info(`Creating ${colors.blue(projectName)} as a project`);
       const { type } = projects[projectName];
 
       if (!type) {
         throw new SchematicsException('Type is needed for every project');
       }
-      context.logger.info(`Project ${projectName} does not exist, creating...`);
-      taskIds.push(context.addTask(new RunSchematicTask('@schematics/angular', type, { name: projectName, skipPackageJson: true }), parentTasks));
+
+      taskIds.push(
+        context.addTask(
+          new RunSchematicTask('@schematics/angular', type, {
+            name: projectName,
+            skipPackageJson: true,
+          }),
+          parentTasks,
+        ),
+      );
+      spinner.succeed(`${colors.blue(projectName)} project was created`);
+    } else {
+      spinner.succeed(`${colors.green(projectName)} project is already created`);
     }
   }
   return [...parentTasks, ...taskIds];
@@ -115,7 +178,7 @@ async function processProjects(
     };
   },
   tree: Tree,
-  parentTasks: TaskId[]
+  parentTasks: TaskId[],
 ) {
   const taskIds: TaskId[] = [];
 
@@ -126,36 +189,44 @@ async function processProjects(
     const path = project?.root ?? `${workspace.extensions.newProjectRoot}/${projectName}`;
     const { type, settings: projectSettings, ...structures } = projects[projectName];
     Object.entries(structures)
-      .map<Structure>((structure) => ({ [structure[0]]: structure[1] } as Structure))
+      .map<Structure>((structure) => ({ [structure[0]]: structure[1] }) as Structure)
       .forEach((structure: Structure) => {
         taskIds.push(
-            ...processStructure(
-                path,
-                {
-                  globalSettings: settings ?? {},
-                  projectSettings: projectSettings ?? {},
-                },
-                structure,
-                parentTasks,
-                _context
-            )
+          ...processStructure(
+            path,
+            {
+              globalSettings: settings ?? {},
+              projectSettings: projectSettings ?? {},
+            },
+            structure,
+            parentTasks,
+            _context,
+            projectName,
+          ),
         );
       });
   });
   return taskIds;
 }
 
+let settingsCached: SettingsCached = {};
 /**
  * Retrieves the last occurrence of schematic settings based on the provided alias.
  *
  * @param _context - The schematic context.
- * @param alias - The alias to search for.
+ * @param schematic
+ * @param settingsName
  * @param settings - The collections of schematics' settings.
  * @returns The schematic settings if found, otherwise undefined.
  */
-function getSchematicSettingsByAlias(
+function getSchematicSettingsByAliasOrName(
   _context: SchematicContext,
-  alias: string,
+  {
+    alias,
+    name,
+    collection: collectionName,
+  }: { alias?: string; name?: string; collection?: string },
+  settingsName: string,
   settings?: //collections
   {
     //schematics
@@ -166,22 +237,43 @@ function getSchematicSettingsByAlias(
         [prop: string]: any;
       };
     };
-  }
+  },
 ): ISchematicSettings | undefined {
-  if (!settings || Object.keys(settings).length === 0) return undefined;
-  //TODO: refactor this.
-  let schematicSetting: ISchematicSettings;
-
+  if (!settings || Object.keys(settings).length === 0 || !settingsName) return undefined;
+  if (!alias && !name && !collectionName) return undefined;
+  if (
+    !!collectionName &&
+    !!name &&
+    settingsCached[settingsName] &&
+    settingsCached[settingsName][`${collectionName}:${name}`]
+  ) {
+    return settingsCached[settingsName][`${collectionName}:${name}`];
+  }
+  if (!!alias && settingsCached[settingsName] && settingsCached[settingsName][alias]) {
+    return settingsCached[settingsName][alias];
+  }
   for (const [collection, schematicObject] of Object.entries(settings).reverse()) {
     for (const [schematicName, schematicDetails] of Object.entries(schematicObject).reverse()) {
       const { alias: schematicAlias, ...schematicSettings } = schematicDetails;
-      if (schematicAlias === alias) {
-        schematicSetting = {
+      if (!!alias && schematicAlias === alias) {
+        let schematicSetting: ISchematicSettings = {
           collection,
           schematicName,
           settings: schematicSettings,
         };
-        return schematicSetting as ISchematicSettings;
+        if (!settingsCached[settingsName]) settingsCached[settingsName] = {};
+        settingsCached[settingsName][schematicAlias] = schematicSetting;
+        return schematicSetting;
+      }
+      if (!!name && !!collectionName && collection === collectionName && schematicName === name) {
+        let schematicSetting: ISchematicSettings = {
+          collection,
+          schematicName,
+          settings: schematicSettings,
+        };
+        if (!settingsCached[settingsName]) settingsCached[settingsName] = {};
+        settingsCached[settingsName][`${collection}:${schematicName}`] = schematicSetting;
+        return schematicSetting;
       }
     }
   }
@@ -194,18 +286,27 @@ function processStructure(
   parentsSettings: IParentSettings,
   structure: Structure,
   parentTaskIds: TaskId[] = [],
-  _context: SchematicContext
+  _context: SchematicContext,
+  projectName?: string,
 ) {
   const { type, ...content } = structure;
   const currentBranchTaskIds: TaskId[] = [];
   const schematics = extractStructures(
     content as FolderStructure | SchematicStructure,
-    'schematic'
+    'schematic',
   );
 
   schematics.forEach((schematicName) => {
     currentBranchTaskIds.push(
-      ...processSchematic(_context, schematicName, content[schematicName], parentsSettings, parentTaskIds, path)
+      ...processSchematic(
+        _context,
+        schematicName,
+        content[schematicName],
+        parentsSettings,
+        parentTaskIds,
+        path,
+        projectName,
+      ),
     );
   });
 
@@ -214,14 +315,14 @@ function processStructure(
   folderNames.forEach((folderName) => {
     parentTaskIds.push(
       ...processStructure(
-          `${path}/${folderName}`,
-          parentsSettings,
-          content[folderName] as Structure,
-          [...currentBranchTaskIds, ...parentTaskIds],
-          _context
-      )
+        `${path}/${folderName}`,
+        parentsSettings,
+        content[folderName] as Structure,
+        [...currentBranchTaskIds, ...parentTaskIds],
+        _context,
+        projectName,
+      ),
     );
-
   });
 
   return parentTaskIds;
@@ -233,23 +334,48 @@ function processSchematic(
   structure: SchematicStructure,
   parentsSettings: IParentSettings,
   parentTaskIds: TaskId[] = [],
-  path: string
+  path: string,
+  projectName?: string,
 ) {
-  const globalSettings = getSchematicSettingsByAlias(
-    _context,
-    schematicName,
-    parentsSettings.globalSettings
-  );
-
-  const projectSettings = getSchematicSettingsByAlias(
-    _context,
-    schematicName,
-    parentsSettings.projectSettings
-  );
-
   const { instances, settings } = structure;
-
   const [collectionName, schematic] = schematicName.split(':', 2);
+  let globalSettings = getSchematicSettingsByAliasOrName(
+    _context,
+    {
+      collection: schematic ? collectionName : undefined,
+      name: schematic,
+      alias: !schematic ? schematicName : undefined,
+    },
+    'global',
+    parentsSettings.globalSettings,
+  );
+  const projectSettings = getSchematicSettingsByAliasOrName(
+    _context,
+    {
+      collection: globalSettings?.collection ?? schematic ? collectionName : undefined,
+      name: globalSettings?.schematicName ?? schematic,
+      alias: !schematic ? schematicName : undefined,
+    },
+    projectName!,
+    parentsSettings.projectSettings,
+  );
+  if (projectSettings && !globalSettings) {
+    globalSettings = getSchematicSettingsByAliasOrName(
+      _context,
+      {
+        collection: projectSettings?.collection,
+        name: projectSettings?.schematicName,
+      },
+      'global',
+      parentsSettings.globalSettings,
+    );
+  }
+
+  if (!schematic && !globalSettings && !projectSettings) {
+    throw new SchematicsException(
+      `Alias not found for ${schematicName}. Neither following the pattern: [COLLECTION-NAME]:[SCHEMATIC-NAME]`,
+    );
+  }
   return executeExternalSchematicRules(
     { globalSettings, projectSettings },
     {
@@ -263,20 +389,20 @@ function processSchematic(
         projectSettings?.schematicName ??
         schematicName,
       instances,
-      settings: settings
+      settings: settings,
     },
     path,
     _context,
-    parentTaskIds
+    parentTaskIds,
   );
 }
 
 function extractStructures(
   content: FolderStructure | SchematicStructure,
-  type: 'schematic' | 'folder'
+  type: 'schematic' | 'folder',
 ): string[] {
   return Object.keys(content).filter(
-    (key) => (content[key] as FolderStructure | SchematicStructure).type === type
+    (key) => (content[key] as FolderStructure | SchematicStructure).type === type,
   );
 }
 
@@ -293,18 +419,19 @@ function executeGlobalSchematicRules(
       [prop: string]: any;
     };
   },
-
 ): TaskId[] {
   const taskIds: TaskId[] = [];
   for (const [schematicName, content] of Object.entries(schematics)) {
-    taskIds.push(...processSchematic(
+    taskIds.push(
+      ...processSchematic(
         _context,
         schematicName,
         content as SchematicStructure,
         { globalSettings },
         parentTaskIds,
-        '/'
-    ))
+        '/',
+      ),
+    );
   }
   return taskIds;
 }
@@ -324,7 +451,7 @@ function executeExternalSchematicRules(
   schematic: ISchematic,
   path: string,
   _context: SchematicContext,
-  parentTaskIds: TaskId[]
+  parentTaskIds: TaskId[],
 ): TaskId[] {
   const taskIds: TaskId[] = [];
 
@@ -348,7 +475,14 @@ function executeExternalSchematicRules(
   } else {
     for (const [name, instanceSettings] of Object.entries(schematic.instances)) {
       taskIds.push(
-        createExternalSchematicCall(schematic, path, { ...settings, ...instanceSettings }, _context, parentTaskIds, name)
+        createExternalSchematicCall(
+          schematic,
+          path,
+          { ...settings, ...instanceSettings },
+          _context,
+          parentTaskIds,
+          name,
+        ),
       );
     }
   }
@@ -377,11 +511,14 @@ function createExternalSchematicCall(
   parentTaskIds: TaskId[],
   name?: string,
 ): TaskId {
-  return context.addTask(new RunSchematicTask(schematic.collection!, schematic.schematicName!, {
-    path,
-    ...settings,
-    ...(name ? { name } : {}),
-  }), parentTaskIds);
+  return context.addTask(
+    new RunSchematicTask(schematic.collection!, schematic.schematicName!, {
+      path,
+      ...settings,
+      ...(name ? { name } : {}),
+    }),
+    parentTaskIds,
+  );
 }
 
 function removeDuplicates(tasks: TaskId[]): TaskId[] {

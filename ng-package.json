@@ -3,5 +3,5 @@
   "lib": {
     "entryFile": "src/public_api.ts"
   },
-  "allowedNonPeerDependencies": ["@angular-devkit/core", "@angular-devkit/schematics", "typescript"]
+  "allowedNonPeerDependencies": ["@angular-devkit/core", "@angular-devkit/schematics", "typescript", "ora"]
 }
