@@ -339,7 +339,6 @@ function processSchematic(
 ) {
   const { instances, settings } = structure;
   const { name, path: parsedPath } = parseName(path, schematicName);
-  console.log('New path', { name, parsedPath });
   const [collectionName, schematic] = name.split(':', 2);
   let globalSettings = getSchematicSettingsByAliasOrName(
     _context,
@@ -386,10 +385,7 @@ function processSchematic(
           ? collectionName
           : globalSettings?.collection ?? projectSettings?.collection,
       schematicName:
-        schematic ??
-        globalSettings?.schematicName ??
-        projectSettings?.schematicName ??
-        schematicName,
+        schematic ?? globalSettings?.schematicName ?? projectSettings?.schematicName ?? name,
       instances,
       settings: settings,
     },
