@@ -18,7 +18,7 @@ import {
   WorkspaceStructure,
 } from './build.interfaces';
 import { RunSchematicTask } from '@angular-devkit/schematics/tasks';
-import { getJsonFile, getProject, readWorkspace } from '../../utils';
+import { getJsonFile, getProject, parseName, readWorkspace } from '../../utils';
 import { TaskId } from '@angular-devkit/schematics/src/engine/interface';
 import { deepCopy } from '@angular-devkit/core';
 import { Spinner } from '../../utils/spinner';
@@ -338,13 +338,15 @@ function processSchematic(
   projectName?: string,
 ) {
   const { instances, settings } = structure;
-  const [collectionName, schematic] = schematicName.split(':', 2);
+  const { name, path: parsedPath } = parseName(path, schematicName);
+  console.log('New path', { name, parsedPath });
+  const [collectionName, schematic] = name.split(':', 2);
   let globalSettings = getSchematicSettingsByAliasOrName(
     _context,
     {
       collection: schematic ? collectionName : undefined,
       name: schematic,
-      alias: !schematic ? schematicName : undefined,
+      alias: !schematic ? name : undefined,
     },
     'global',
     parentsSettings.globalSettings,
@@ -354,7 +356,7 @@ function processSchematic(
     {
       collection: globalSettings?.collection ?? schematic ? collectionName : undefined,
       name: globalSettings?.schematicName ?? schematic,
-      alias: !schematic ? schematicName : undefined,
+      alias: !schematic ? name : undefined,
     },
     projectName!,
     parentsSettings.projectSettings,
@@ -391,7 +393,7 @@ function processSchematic(
       instances,
       settings: settings,
     },
-    path,
+    parsedPath,
     _context,
     parentTaskIds,
   );
