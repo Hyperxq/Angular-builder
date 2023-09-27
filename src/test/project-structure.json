@@ -1,0 +1,69 @@
+{
+  "$schema": "./node_modules/@danils/angular-builder/lib/schematics/config/schema.json",
+  "settings": {
+    "@schematics/angular": {
+      "component": {
+        "alias": "components"
+      },
+      "service": {
+        "alias": "services"
+      },
+      "module": {
+        "alias": "modules"
+      },
+      "directive": {
+        "alias": "directives"
+      },
+      "pipe": {
+        "alias": "pipes"
+      },
+      "class": {
+        "alias": "classes"
+      }
+    }
+  },
+  "projects": {
+    "POC-internal-schematics": {
+      "type": "application",
+      "settings": {
+        "@schematics/angular": {
+          "component": {
+            "style": "scss"
+          }
+        }
+      },
+      "src": {
+        "type": "folder",
+        "app": {
+          "type": "folder"
+        },
+        "assets": {
+          "type": "folder"
+        }
+      }
+    },
+    "schematics": {
+      "type": "library",
+      "settings": {},
+      "src": {
+        "type": "folder",
+        "ng-generate": {
+          "type": "folder",
+          "component-extended": {
+            "type": "folder"
+          }
+        }
+      }
+    },
+    "graphql": {
+      "type": "library",
+      "settings": {},
+      "src": {
+        "type": "folder",
+        "lib": {
+          "type": "folder"
+        }
+      }
+    }
+  }
+}

@@ -98,7 +98,7 @@ function getDirectoriesRecursively(
     '.vscode',
     'docs',
     'projects',
-  ]
+  ],
 ): string[] {
   let directories: string[] = [];
 
@@ -117,7 +117,7 @@ function getDirectoriesRecursively(
 
 function generateNestedStructureFromDirectories(
   directories: string[],
-  basePath: string
+  basePath: string,
 ): { [key: string]: {} } {
   const structure: { [key: string]: {} } = {};
 

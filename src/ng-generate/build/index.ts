@@ -18,40 +18,39 @@ import {
   WorkspaceStructure,
 } from './build.interfaces';
 import { RunSchematicTask } from '@angular-devkit/schematics/tasks';
-import { getJsonFile, getProject, readWorkspace } from '../../utils';
+import { getJsonFile, getProject, parseName, readWorkspace } from '../../utils';
 import { TaskId } from '@angular-devkit/schematics/src/engine/interface';
 import { deepCopy } from '@angular-devkit/core';
-import { Spinner } from '../../utils/spinner';
-import { colors } from '../../utils/color';
+import {
+  addCollectionsQuestion,
+  addToAngularJsonQuestion,
+  installCollectionQuestion,
+  unInstallCollectionQuestion,
+} from './questions.terminal';
 
-export function executeWorkspaceSchematics({
-  allowInstallCollections,
-  allowUnInstallCollections,
-}: {
-  allowInstallCollections: boolean;
-  allowUnInstallCollections: boolean;
-}): Rule {
-  // { customFilePath }: { customFilePath: string }
-  return async (tree: Tree, _context: SchematicContext) => {
+export function executeWorkspaceSchematics(): Rule {
+  return async (tree: Tree, _context: SchematicContext): Promise<Rule> => {
+    if (!tree.exists('./project-structure.json')) {
+      throw new SchematicsException(`Json file didn't find on the workspace`);
+    }
     const { $schema, settings, projects, ...schematics } = getJsonFile<WorkspaceStructure>(
       tree,
       './project-structure.json',
     );
+
     if (!$schema) {
       throw new SchematicsException('$schema property is required');
     }
-
-    const collectionTaskIds: TaskId[] = checkCollections(
-      _context,
-      deepCopy(settings),
-      allowInstallCollections,
-    );
+    console.log('pass before anything');
+    const { installCollection, taskId } = await checkCollections(_context, deepCopy(settings));
+    // await addCollectionsToAngularJson(_context, deepCopy(settings));
     const projectsTaskIds: TaskId[] = await ensureProjectExists(
       projects as IProjects,
       tree,
       _context,
-      collectionTaskIds,
+      taskId ? [taskId] : [],
     );
+
     const globalSchematicTaskId = executeGlobalSchematicRules(
       _context,
       schematics,
@@ -65,7 +64,7 @@ export function executeWorkspaceSchematics({
       tree,
       projectsTaskIds,
     );
-    removePackages(_context, deepCopy(settings), allowUnInstallCollections, [
+    removePackages(_context, deepCopy(settings), installCollection, [
       ...projectsTaskIds,
       ...globalSchematicTaskId,
       ...structureTaskIds,
@@ -74,13 +73,13 @@ export function executeWorkspaceSchematics({
   };
 }
 
-function checkCollections(
+async function checkCollections(
   context: SchematicContext,
   settings: { [p: string]: { version: string } & { [p: string]: any } },
-  installCollections: boolean,
 ) {
   let taskId: TaskId | undefined;
-  if (installCollections) {
+  const installCollection = await installCollectionQuestion();
+  if (installCollection) {
     const collections: { packageName: string; version?: string }[] = [];
     const collectionPairs = Object.entries(settings);
     for (const [packageName, collectionContent] of collectionPairs) {
@@ -89,19 +88,56 @@ function checkCollections(
       if (version) collection.version = version;
       collections.push(collection);
     }
-    taskId = context.addTask(new RunSchematicTask('checkPackages', { packages: collections }));
+
+    const collectionsToInstall = await addCollectionsQuestion(collections);
+
+    taskId = context.addTask(
+      new RunSchematicTask('checkPackages', {
+        packages: collectionsToInstall,
+      }),
+    );
   }
 
-  return taskId ? [taskId] : [];
+  return taskId ? { installCollection, taskId } : { installCollection };
 }
-function removePackages(
+
+// @ts-ignore
+async function addCollectionsToAngularJson(
+  context: SchematicContext,
+  settings: {
+    [p: string]: { version: string } & { [p: string]: any };
+  },
+) {
+  let taskId: TaskId | undefined;
+  if (await addToAngularJsonQuestion()) {
+    const collections: { packageName: string; version?: string }[] = [];
+    const collectionPairs = Object.entries(settings);
+    for (const [packageName, collectionContent] of collectionPairs) {
+      const { version } = collectionContent;
+      const collection: { packageName: string; version?: string } = { packageName };
+      if (version) collection.version = version;
+      collections.push(collection);
+    }
+
+    taskId = context.addTask(
+      new RunSchematicTask('AddCollectionsAngularJson', {
+        packages: await addCollectionsQuestion(collections),
+      }),
+    );
+  }
+  return taskId;
+}
+
+async function removePackages(
   context: SchematicContext,
   settings: { [p: string]: { version: string } & { [p: string]: any } },
-  unInstallCollections: boolean,
+  areCollectionInstalled: boolean,
   parentTaskIds: TaskId[] = [],
-): TaskId | undefined {
+): Promise<TaskId | undefined> {
   let taskId: TaskId | undefined;
-  if (unInstallCollections) {
+
+  const unInstallCollection = await unInstallCollectionQuestion();
+  if (areCollectionInstalled && unInstallCollection) {
     const collections: { packageName: string; version?: string }[] = [];
     const collectionPairs = Object.entries(settings);
     for (const [packageName, collectionContent] of collectionPairs) {
@@ -130,33 +166,16 @@ async function ensureProjectExists(
   const workspace = await readWorkspace(tree);
   const projectNames = Object.keys(projects);
   const taskIds: TaskId[] = [];
-  for (const projectName of projectNames) {
-    const spinner = new Spinner();
-    spinner.start(`Checking ${colors.bgBlue(projectName)} project...`);
-    const project = getProject(workspace, projectName);
-    if (!project) {
-      spinner.info(`Creating ${colors.blue(projectName)} as a project`);
-      const { type } = projects[projectName];
-
-      if (!type) {
-        throw new SchematicsException('Type is needed for every project');
-      }
-
-      taskIds.push(
-        context.addTask(
-          new RunSchematicTask('@schematics/angular', type, {
-            name: projectName,
-            skipPackageJson: true,
-          }),
-          parentTasks,
-        ),
-      );
-      spinner.succeed(`${colors.blue(projectName)} project was created`);
-    } else {
-      spinner.succeed(`${colors.green(projectName)} project is already created`);
-    }
-  }
-  return [...parentTasks, ...taskIds];
+  const taskId = context.addTask(
+    new RunSchematicTask('checkProjects', {
+      projects,
+      workspace,
+      projectNames,
+      parentTasks,
+    }),
+    taskIds,
+  );
+  return [...parentTasks, taskId];
 }
 
 async function processProjects(
@@ -338,7 +357,8 @@ function processSchematic(
   projectName?: string,
 ) {
   const { instances, settings } = structure;
-  const [collectionName, schematic] = schematicName.split(':', 2);
+  const { name, path: parsedPath } = parseName(path, schematicName);
+  const [collectionName, schematic] = name.split(':', 2);
   let globalSettings = getSchematicSettingsByAliasOrName(
     _context,
     {
@@ -391,7 +411,7 @@ function processSchematic(
       instances,
       settings: settings,
     },
-    path,
+    parsedPath,
     _context,
     parentTaskIds,
   );

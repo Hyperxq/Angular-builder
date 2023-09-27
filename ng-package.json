@@ -1,7 +1,16 @@
 {
   "$schema": "./node_modules/ng-packagr/ng-package.schema.json",
   "lib": {
-    "entryFile": "src/public_api.ts"
+    "entryFile": "src/public_api.ts",
+    "flatModuleFile": ""
   },
-  "allowedNonPeerDependencies": ["@angular-devkit/core", "@angular-devkit/schematics", "typescript", "ora"]
+
+  "allowedNonPeerDependencies": [
+    "@angular-devkit/core",
+    "@angular-devkit/schematics",
+    "typescript",
+    "ora",
+    "inquirer",
+    "ansi-colors"
+  ]
 }

@@ -9,7 +9,6 @@
     "scan": {
       "description": "Scan project and represent into a json file",
       "factory": "./ng-generate/scan-project/index#scan",
-      "schema": "./ng-generate/scan-project/schema.json",
       "aliases": [
         "s"
       ]
@@ -17,7 +16,6 @@
     "build": {
       "description": "Execute all the schematics in the json file",
       "factory": "./ng-generate/build/index#executeWorkspaceSchematics",
-      "schema": "./ng-generate/build/schema.json",
       "aliases": [
         "b"
       ]
@@ -27,8 +25,18 @@
       "factory": "./ng-generate/check-packages/index#checkPackages",
       "hidden": true
     },
+    "checkProjects": {
+      "description": "Check collections",
+      "factory": "./ng-generate/check-projects/index#checkProjects",
+      "hidden": true
+    },
     "uninstallPackages": {
       "description": "Uninstall collections",
+      "factory": "./ng-generate/uninstall-packages/index#uninstallPackages",
+      "hidden": true
+    },
+    "AddCollectionsAngularJson": {
+      "description": "Add collections to angular.json",
       "factory": "./ng-generate/uninstall-packages/index#uninstallPackages",
       "hidden": true
     }
