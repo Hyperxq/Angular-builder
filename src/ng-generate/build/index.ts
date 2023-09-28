@@ -364,7 +364,7 @@ function processSchematic(
     {
       collection: schematic ? collectionName : undefined,
       name: schematic,
-      alias: !schematic ? schematicName : undefined,
+      alias: !schematic ? name : undefined,
     },
     'global',
     parentsSettings.globalSettings,
@@ -374,7 +374,7 @@ function processSchematic(
     {
       collection: globalSettings?.collection ?? schematic ? collectionName : undefined,
       name: globalSettings?.schematicName ?? schematic,
-      alias: !schematic ? schematicName : undefined,
+      alias: !schematic ? name : undefined,
     },
     projectName!,
     parentsSettings.projectSettings,
@@ -404,10 +404,7 @@ function processSchematic(
           ? collectionName
           : globalSettings?.collection ?? projectSettings?.collection,
       schematicName:
-        schematic ??
-        globalSettings?.schematicName ??
-        projectSettings?.schematicName ??
-        schematicName,
+        schematic ?? globalSettings?.schematicName ?? projectSettings?.schematicName ?? name,
       instances,
       settings: settings,
     },
