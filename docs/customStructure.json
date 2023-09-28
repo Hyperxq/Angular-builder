@@ -47,7 +47,7 @@
         "type": "folder",
         "app": {
           "type": "folder",
-          "components": {
+          "componentsx": {
             "type": "schematic",
             "settings": {
               "skipTests": true,
@@ -99,7 +99,7 @@
       }
     }
   },
-  "components": {
+  "componentsx": {
     "type": "schematic",
     "settings": {
       "skipTests": true,

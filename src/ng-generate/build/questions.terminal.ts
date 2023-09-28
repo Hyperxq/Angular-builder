@@ -8,13 +8,6 @@ export interface BuildQuestions {
   addToAngularJson: boolean;
 }
 
-export async function addToAngularJsonQuestion() {
-  const message = bold(
-    green('Do you want to install the collections if they are not already installed?'),
-  );
-  return await askConfirmation(message, true);
-}
-
 export async function installCollectionQuestion(): Promise<boolean> {
   const message = bold(
     green('Do you want to install the collections if they are not already installed?'),

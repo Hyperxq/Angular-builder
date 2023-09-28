@@ -37,7 +37,7 @@
     },
     "AddCollectionsAngularJson": {
       "description": "Add collections to angular.json",
-      "factory": "./ng-generate/uninstall-packages/index#uninstallPackages",
+      "factory": "./ng-generate/add-collections-angular-json/index#AddCollectionsAngularJson",
       "hidden": true
     }
   }

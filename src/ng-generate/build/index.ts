@@ -23,16 +23,12 @@ import { TaskId } from '@angular-devkit/schematics/src/engine/interface';
 import { deepCopy } from '@angular-devkit/core';
 import {
   addCollectionsQuestion,
-  addToAngularJsonQuestion,
   installCollectionQuestion,
   unInstallCollectionQuestion,
 } from './questions.terminal';
 
 export function executeWorkspaceSchematics(): Rule {
-  return async (tree: Tree, _context: SchematicContext): Promise<Rule> => {
-    if (!tree.exists('./project-structure.json')) {
-      throw new SchematicsException(`Json file didn't find on the workspace`);
-    }
+  return async (tree: Tree, context: SchematicContext): Promise<Rule> => {
     const { $schema, settings, projects, ...schematics } = getJsonFile<WorkspaceStructure>(
       tree,
       './project-structure.json',
@@ -41,34 +37,29 @@ export function executeWorkspaceSchematics(): Rule {
     if (!$schema) {
       throw new SchematicsException('$schema property is required');
     }
-    console.log('pass before anything');
-    const { installCollection, taskId } = await checkCollections(_context, deepCopy(settings));
-    // await addCollectionsToAngularJson(_context, deepCopy(settings));
+    const { taskId } = await checkCollections(context, deepCopy(settings));
+    await addCollectionsToAngularJson(context, deepCopy(settings));
     const projectsTaskIds: TaskId[] = await ensureProjectExists(
       projects as IProjects,
-      tree,
-      _context,
+      context,
       taskId ? [taskId] : [],
     );
 
     const globalSchematicTaskId = executeGlobalSchematicRules(
-      _context,
+      context,
       schematics,
       projectsTaskIds,
       deepCopy(settings) ?? {},
     );
-    const structureTaskIds = await processProjects(
-      _context,
-      projects,
-      deepCopy(settings),
-      tree,
-      projectsTaskIds,
-    );
-    removePackages(_context, deepCopy(settings), installCollection, [
-      ...projectsTaskIds,
-      ...globalSchematicTaskId,
-      ...structureTaskIds,
-    ]);
+
+    const taskIds: TaskId[] = [...globalSchematicTaskId, ...projectsTaskIds];
+    if (taskId) taskIds.push(taskId);
+    // removePackages(context, deepCopy(settings), installCollection, [
+    //   ...projectsTaskIds,
+    //   ...globalSchematicTaskId,
+    // ]);
+    await processProjects(context, projects, deepCopy(settings), tree, taskIds);
+
     return chain([]);
   };
 }
@@ -90,7 +81,6 @@ async function checkCollections(
     }
 
     const collectionsToInstall = await addCollectionsQuestion(collections);
-
     taskId = context.addTask(
       new RunSchematicTask('checkPackages', {
         packages: collectionsToInstall,
@@ -101,7 +91,6 @@ async function checkCollections(
   return taskId ? { installCollection, taskId } : { installCollection };
 }
 
-// @ts-ignore
 async function addCollectionsToAngularJson(
   context: SchematicContext,
   settings: {
@@ -109,25 +98,23 @@ async function addCollectionsToAngularJson(
   },
 ) {
   let taskId: TaskId | undefined;
-  if (await addToAngularJsonQuestion()) {
-    const collections: { packageName: string; version?: string }[] = [];
-    const collectionPairs = Object.entries(settings);
-    for (const [packageName, collectionContent] of collectionPairs) {
-      const { version } = collectionContent;
-      const collection: { packageName: string; version?: string } = { packageName };
-      if (version) collection.version = version;
-      collections.push(collection);
-    }
 
-    taskId = context.addTask(
-      new RunSchematicTask('AddCollectionsAngularJson', {
-        packages: await addCollectionsQuestion(collections),
-      }),
-    );
+  const collections: string[] = [];
+  const collectionPairs = Object.entries(settings);
+  for (const [packageName] of collectionPairs) {
+    collections.push(packageName);
   }
+
+  taskId = context.addTask(
+    new RunSchematicTask('AddCollectionsAngularJson', {
+      packages: collections,
+    }),
+  );
+
   return taskId;
 }
 
+//@ts-ignore
 async function removePackages(
   context: SchematicContext,
   settings: { [p: string]: { version: string } & { [p: string]: any } },
@@ -156,20 +143,17 @@ async function removePackages(
 
   return taskId;
 }
-
 async function ensureProjectExists(
   projects: IProjects,
-  tree: Tree,
   context: SchematicContext,
   parentTasks: TaskId[],
 ) {
-  const workspace = await readWorkspace(tree);
   const projectNames = Object.keys(projects);
+
   const taskIds: TaskId[] = [];
   const taskId = context.addTask(
     new RunSchematicTask('checkProjects', {
       projects,
-      workspace,
       projectNames,
       parentTasks,
     }),
@@ -177,7 +161,6 @@ async function ensureProjectExists(
   );
   return [...parentTasks, taskId];
 }
-
 async function processProjects(
   _context: SchematicContext,
   projects: {
@@ -358,6 +341,13 @@ function processSchematic(
 ) {
   const { instances, settings } = structure;
   const { name, path: parsedPath } = parseName(path, schematicName);
+  // console.log(
+  //   'weird',
+  //   parsedPath
+  //     .split('/')
+  //     .filter((path) => path)
+  //     .join('/'),
+  // );
   const [collectionName, schematic] = name.split(':', 2);
   let globalSettings = getSchematicSettingsByAliasOrName(
     _context,
@@ -406,7 +396,7 @@ function processSchematic(
       schematicName:
         schematic ?? globalSettings?.schematicName ?? projectSettings?.schematicName ?? name,
       instances,
-      settings: settings,
+      settings: { ...settings, project: projectName },
     },
     parsedPath,
     _context,
@@ -422,7 +412,6 @@ function extractStructures(
     (key) => (content[key] as FolderStructure | SchematicStructure).type === type,
   );
 }
-
 function executeGlobalSchematicRules(
   _context: SchematicContext,
   schematics: {
