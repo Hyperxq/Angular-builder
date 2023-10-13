@@ -20,6 +20,6 @@
     "types": ["jasmine", "node"],
     "esModuleInterop": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/*/files/**/*"]
+  "include": ["src/**/**/*", "src/**/*"],
+  "exclude": ["src/**/**/files/**/*"]
 }

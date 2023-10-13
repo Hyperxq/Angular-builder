@@ -10,10 +10,9 @@ export function checkPackages(options: {
   const ignores: string[] = ['@schematics/angular'];
   const { packages } = options;
   return (tree: Tree, _context: SchematicContext) => {
-    const spinnerMain = new Spinner();
-    let spinner;
+    let spinner = new Spinner();
     try {
-      spinnerMain.start('Checking collections...');
+      spinner.info('Checking collections...');
       for (const { packageName, version } of packages) {
         if (ignores.some((ignore) => ignore === packageName)) continue;
         spinner = new Spinner();
@@ -28,10 +27,9 @@ export function checkPackages(options: {
           spinner.stop();
         }
       }
-      spinnerMain.succeed(`Collections were installed successfully`);
+      spinner.info(`Collections were installed successfully`);
     } catch (err) {
       spinner?.stop();
-      spinnerMain.stop();
       throw err;
     }
   };

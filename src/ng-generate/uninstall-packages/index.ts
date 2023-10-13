@@ -9,10 +9,8 @@ export function uninstallPackages(options: {
   const { packages } = options;
   const ignores: string[] = ['@schematics/angular'];
   return (_tree: Tree, _context: SchematicContext) => {
-    const spinnerMain = new Spinner();
     let spinner;
     try {
-      spinnerMain.start('Uninstalling collections...');
       for (const { packageName } of packages) {
         if (ignores.some((ignore) => ignore === packageName)) continue;
         spinner = new Spinner();
@@ -20,10 +18,8 @@ export function uninstallPackages(options: {
         execSync(`npm uninstall ${packageName}`, { stdio: 'inherit' });
         spinner.succeed(`${colors.green(packageName)} uninstalled`);
       }
-      spinnerMain.succeed(`Collections were ${colors.green('uninstalled')} successfully`);
     } catch (err) {
       spinner?.stop();
-      spinnerMain.stop();
       throw err;
     }
   };
