@@ -22,7 +22,7 @@ export function checkProjects(options: {
         const project = getProject(workspace, projectName);
         if (!project) {
           spinner.info(`Creating ${colors.bgMagenta(projectName)} as a project`);
-          const { type: projectType } = projects[projectName];
+          const { type: projectType, projectOptions } = projects[projectName];
 
           if (!projectType && (projectType === 'library' || projectType === 'application')) {
             throw new SchematicsException(
@@ -34,6 +34,7 @@ export function checkProjects(options: {
             new RunSchematicTask('@schematics/angular', projectType, {
               name: projectName,
               skipPackageJson: true,
+              ...(projectOptions ?? {}),
             }),
             parentTasks,
           );

@@ -1,5 +1,5 @@
 {
-  "$schema": "./node_modules/@danils/angular-builder/lib/schematics/config/schema.json",
+  "$schema": "../src/config/schema.json",
   "settings": {
     "@danils/schematicskit": {
       "prettier": {
@@ -35,7 +35,11 @@
   },
   "projects": {
     "POC-internal-schematics-B": {
-      "type": "application",
+      "type": "library",
+      "projectOptions": {
+        "projectRoot": "",
+        "name": "das"
+      },
       "settings": {
         "@schematics/angular": {
           "component": {
@@ -99,7 +103,7 @@
       }
     }
   },
-  "componentsx": {
+  "components": {
     "type": "schematic",
     "settings": {
       "skipTests": true,
