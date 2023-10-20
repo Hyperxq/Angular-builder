@@ -16,6 +16,7 @@ import {
   SchematicStructure,
   Structure,
   WorkspaceStructure,
+  BuildOptions,
 } from './build.interfaces';
 import { RunSchematicTask } from '@angular-devkit/schematics/tasks';
 import { getJsonFile, getProject, parseName, readWorkspace } from '../../utils';
@@ -27,49 +28,60 @@ import {
   unInstallCollectionQuestion,
 } from './questions.terminal';
 
-export function executeWorkspaceSchematics(): Rule {
+export function executeWorkspaceSchematics(options: BuildOptions): Rule {
   return async (tree: Tree, context: SchematicContext): Promise<Rule> => {
-    const { $schema, settings, projects, ...schematics } = getJsonFile<WorkspaceStructure>(
-      tree,
-      './project-structure.json',
-    );
+    try {
+      const { $schema, settings, projects, ...schematics } = options.base64String
+        ? convertJsonFromBase64(options.base64String)
+        : getJsonFile<WorkspaceStructure>(tree, './project-structure.json');
 
-    if (!$schema) {
-      throw new SchematicsException('$schema property is required');
+      if (!$schema) {
+        throw new SchematicsException('$schema property is required');
+      }
+      const { taskId } = await checkCollections(context, deepCopy(settings), options);
+      await addCollectionsToAngularJson(context, deepCopy(settings));
+      const projectsTaskIds: TaskId[] = await ensureProjectExists(
+        projects as IProjects,
+        context,
+        taskId ? [taskId] : [],
+      );
+
+      const globalSchematicTaskId = executeGlobalSchematicRules(
+        context,
+        schematics,
+        projectsTaskIds,
+        deepCopy(settings) ?? {},
+      );
+
+      const taskIds: TaskId[] = [...globalSchematicTaskId, ...projectsTaskIds];
+      if (taskId) taskIds.push(taskId);
+      // removePackages(context, deepCopy(settings), installCollection, [
+      //   ...projectsTaskIds,
+      //   ...globalSchematicTaskId,
+      // ]);
+      await processProjects(context, projects, deepCopy(settings), tree, taskIds);
+
+      return chain([]);
+    } catch (err) {
+      throw new SchematicsException(`Something happened executing Build Schematic: ${err.message}`);
     }
-    const { taskId } = await checkCollections(context, deepCopy(settings));
-    await addCollectionsToAngularJson(context, deepCopy(settings));
-    const projectsTaskIds: TaskId[] = await ensureProjectExists(
-      projects as IProjects,
-      context,
-      taskId ? [taskId] : [],
-    );
-
-    const globalSchematicTaskId = executeGlobalSchematicRules(
-      context,
-      schematics,
-      projectsTaskIds,
-      deepCopy(settings) ?? {},
-    );
-
-    const taskIds: TaskId[] = [...globalSchematicTaskId, ...projectsTaskIds];
-    if (taskId) taskIds.push(taskId);
-    // removePackages(context, deepCopy(settings), installCollection, [
-    //   ...projectsTaskIds,
-    //   ...globalSchematicTaskId,
-    // ]);
-    await processProjects(context, projects, deepCopy(settings), tree, taskIds);
-
-    return chain([]);
   };
+}
+
+function convertJsonFromBase64(base64String: string): WorkspaceStructure {
+  const jsonString = Buffer.from(base64String, 'base64').toString();
+  return JSON.parse(jsonString);
 }
 
 async function checkCollections(
   context: SchematicContext,
   settings: { [p: string]: { version: string } & { [p: string]: any } },
+  options: BuildOptions,
 ) {
   let taskId: TaskId | undefined;
-  const installCollection = await installCollectionQuestion();
+  const installCollection =
+    Boolean(options.installCollection) ?? (await installCollectionQuestion());
+  console.log(installCollection);
   if (installCollection) {
     const collections: { packageName: string; version?: string }[] = [];
     const collectionPairs = Object.entries(settings);
@@ -80,7 +92,9 @@ async function checkCollections(
       collections.push(collection);
     }
 
-    const collectionsToInstall = await addCollectionsQuestion(collections);
+    const collectionsToInstall = Boolean(options.addCollections)
+      ? collections
+      : await addCollectionsQuestion(collections);
     taskId = context.addTask(
       new RunSchematicTask('checkPackages', {
         packages: collectionsToInstall,

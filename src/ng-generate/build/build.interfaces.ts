@@ -1,3 +1,12 @@
+export interface BuildOptions {
+  base64String?: string;
+  workspaceStructure: WorkspaceStructure;
+  installCollection: boolean;
+  addCollections: boolean;
+  unInstallCollection?: boolean;
+  name?: string;
+}
+
 interface IWorkspaceStructure {
   globalSettings?: {
     [key: string]: {

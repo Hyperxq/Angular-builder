@@ -1,22 +1,22 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema",
-  "$id": "SchematicsAngularComponent",
-  "title": "Angular Component Options Schema",
+  "$id": "BuildOptions",
   "type": "object",
-  "description": "Creates a new, generic component definition in the given project.",
-  "additionalProperties": false,
+  "title": "Build Options Schema",
+  "description": "Defines the options for the build schematic.",
   "properties": {
-    "allowInstallCollections": {
-      "type": "boolean",
-      "description": "Allows to install collections when they don't already installed",
-      "default": true,
-      "x-prompt": "Do you want to install the collections if they are not already installed?"
+    "workspaceStructure": {
+      "type": "object",
+      "description": "The workspace structure."
     },
-    "allowUnInstallCollections": {
+    "installCollection": {
       "type": "boolean",
-      "description": "Allows to uninstall collections after the process has finished",
-      "default": false,
-      "x-prompt": "Do you want to uninstall the collections after the process has finished?"
+      "description": "Flag to indicate whether to install the collection."
+    },
+    "addCollections": {
+      "type": "boolean",
+      "description": "Flag to indicate whether to add additional collections."
     }
-  }
+  },
+  "required": []
 }

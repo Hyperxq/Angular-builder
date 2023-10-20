@@ -6,11 +6,13 @@
   },
 
   "allowedNonPeerDependencies": [
+    "@schematics/angular",
     "@angular-devkit/core",
     "@angular-devkit/schematics",
     "typescript",
     "ora",
     "inquirer",
-    "ansi-colors"
+    "ansi-colors",
+    "axios"
   ]
 }

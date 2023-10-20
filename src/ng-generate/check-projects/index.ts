@@ -44,7 +44,7 @@ export function checkProjects(options: {
       }
     } catch (err) {
       spinner?.stop();
-      throw err;
+      throw new SchematicsException(`Something happened when creating projects: ${err.message}`);
     }
   };
 }
