@@ -6,14 +6,14 @@ export function AddCollectionsAngularJson(options: { packages: string[] }): Rule
   return updateWorkspace((workspace) => {
     try {
       const { cli } = workspace.extensions;
-      const { schematicCollections } = cli as { schematicCollections?: string[] };
-      let collections: string[] = (schematicCollections as []) ?? [];
+      if (!cli) workspace.extensions.cli = {};
+      let collections: string[] =
+        (cli as { schematicCollections?: string[] })?.schematicCollections ?? [];
 
       for (const packageName of packages) {
         if (!collections.some((c) => c === packageName)) collections.push(packageName);
       }
 
-      if (!cli) workspace.extensions.cli = {};
       (workspace.extensions.cli as { schematicCollections?: string[] }).schematicCollections =
         collections;
     } catch (err) {

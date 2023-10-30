@@ -4,15 +4,13 @@ import { colors } from '../../utils/color';
 import { getProject, readWorkspace, WorkspaceDefinition } from '../../utils';
 import { RunSchematicTask } from '@angular-devkit/schematics/tasks';
 import { IProjects } from '../build/build.interfaces';
-import { TaskId } from '@angular-devkit/schematics/src/engine/interface';
 
 export function checkProjects(options: {
   projects: IProjects;
   workspace: WorkspaceDefinition;
   projectNames: string[];
-  parentTasks: TaskId[];
 }): Rule {
-  const { projectNames, projects, parentTasks } = options;
+  const { projectNames, projects } = options;
   return async (tree: Tree, context: SchematicContext) => {
     const workspace = await readWorkspace(tree);
     let spinner = new Spinner();
@@ -35,7 +33,6 @@ export function checkProjects(options: {
               name: projectName,
               skipPackageJson: true,
             }),
-            parentTasks,
           );
           spinner.succeed(`${colors.bgMagenta(projectName)} project was created`);
         } else {
@@ -44,7 +41,7 @@ export function checkProjects(options: {
       }
     } catch (err) {
       spinner?.stop();
-      throw err;
+      throw new SchematicsException(`Something happened when creating projects: ${err.message}`);
     }
   };
 }
