@@ -39,21 +39,6 @@
       "description": "Add collections to angular.json",
       "factory": "./ng-generate/add-collections-angular-json/index#AddCollectionsAngularJson",
       "hidden": true
-    },
-    "create-project": {
-      "factory": "./ng-generate/create-project/create-project.factory#main",
-      "description": "Create a project from remote JSON",
-      "aliases": ["create"]
-    },
-    "create-angular-workspace": {
-      "factory": "./ng-generate/create-angular-workspace/create-angular-workspace.factory#main",
-      "description": "create an angular workspace",
-      "hidden": true
-    },
-    "call-build-schematic": {
-      "factory": "./ng-generate/call-build-schematic/call-build-schematic.factory#main",
-      "description": "create an angular workspace",
-      "hidden": true
     }
   }
 }

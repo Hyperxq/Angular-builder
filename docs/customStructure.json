@@ -34,7 +34,7 @@
     }
   },
   "projects": {
-    "POC-internal-schematics-B": {
+    "[DEFAULT-PROJECT]": {
       "type": "application",
       "settings": {
         "@schematics/angular": {
@@ -47,7 +47,7 @@
         "type": "folder",
         "app": {
           "type": "folder",
-          "componentsx": {
+          "components": {
             "type": "schematic",
             "settings": {
               "skipTests": true,
@@ -99,7 +99,7 @@
       }
     }
   },
-  "componentsx": {
+  "components": {
     "type": "schematic",
     "settings": {
       "skipTests": true,

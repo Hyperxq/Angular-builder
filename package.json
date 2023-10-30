@@ -1,6 +1,6 @@
 {
   "name": "@danils/angular-builder",
-  "version": "0.0.51",
+  "version": "0.0.67",
   "description": "Angular builder",
   "private": false,
   "scripts": {

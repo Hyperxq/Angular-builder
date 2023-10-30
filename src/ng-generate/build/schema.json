@@ -5,8 +5,8 @@
   "title": "Build Options Schema",
   "description": "Defines the options for the build schematic.",
   "properties": {
-    "workspaceStructure": {
-      "type": "object",
+    "base64String": {
+      "type": "string",
       "description": "The workspace structure."
     },
     "installCollection": {

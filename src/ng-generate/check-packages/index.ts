@@ -12,7 +12,7 @@ export function checkPackages(options: {
   return (tree: Tree, _context: SchematicContext) => {
     let spinner = new Spinner();
     try {
-      spinner.info('Checking collections...');
+      console.log(colors.green('Checking collections...'));
       for (const { packageName, version } of packages) {
         if (ignores.some((ignore) => ignore === packageName)) continue;
         spinner = new Spinner();
@@ -27,7 +27,6 @@ export function checkPackages(options: {
           spinner.stop();
         }
       }
-      spinner.info(`Collections were installed successfully`);
     } catch (err) {
       spinner?.stop();
       throw err;

@@ -6,17 +6,17 @@ import {
   Tree,
 } from '@angular-devkit/schematics';
 import {
+  BuildOptions,
   FolderStructure,
-  SettingsCached,
   IParentSettings,
   IProjects,
   ISchematic,
   ISchematicParentsSettings,
   ISchematicSettings,
   SchematicStructure,
+  SettingsCached,
   Structure,
   WorkspaceStructure,
-  BuildOptions,
 } from './build.interfaces';
 import { RunSchematicTask } from '@angular-devkit/schematics/tasks';
 import { getJsonFile, getProject, parseName, readWorkspace } from '../../utils';
@@ -50,6 +50,7 @@ export function executeWorkspaceSchematics(options: BuildOptions): Rule {
         context,
         schematics,
         projectsTaskIds,
+        options.name!,
         deepCopy(settings) ?? {},
       );
 
@@ -60,6 +61,18 @@ export function executeWorkspaceSchematics(options: BuildOptions): Rule {
       //   ...globalSchematicTaskId,
       // ]);
       await processProjects(context, projects, deepCopy(settings), tree, taskIds);
+
+      console.log(`
++------------------------------------------------+
+|                                                |
+|             🎉  CONGRATULATIONS!  🎉           |
+|                                                |
+|                  Process finished              |
+|                                                |
+|           🚀  Great job! Keep it up!  🚀       |
+|                                                |
++------------------------------------------------+
+`);
 
       return chain([]);
     } catch (err) {
@@ -81,7 +94,6 @@ async function checkCollections(
   let taskId: TaskId | undefined;
   const installCollection =
     Boolean(options.installCollection) ?? (await installCollectionQuestion());
-  console.log(installCollection);
   if (installCollection) {
     const collections: { packageName: string; version?: string }[] = [];
     const collectionPairs = Object.entries(settings);
@@ -157,6 +169,7 @@ async function removePackages(
 
   return taskId;
 }
+
 async function ensureProjectExists(
   projects: IProjects,
   context: SchematicContext,
@@ -169,12 +182,12 @@ async function ensureProjectExists(
     new RunSchematicTask('checkProjects', {
       projects,
       projectNames,
-      parentTasks,
     }),
     taskIds,
   );
   return [...parentTasks, taskId];
 }
+
 async function processProjects(
   _context: SchematicContext,
   projects: {
@@ -226,6 +239,7 @@ async function processProjects(
 }
 
 let settingsCached: SettingsCached = {};
+
 /**
  * Retrieves the last occurrence of schematic settings based on the provided alias.
  *
@@ -415,6 +429,7 @@ function processSchematic(
     parsedPath,
     _context,
     parentTaskIds,
+    projectName!,
   );
 }
 
@@ -426,6 +441,7 @@ function extractStructures(
     (key) => (content[key] as FolderStructure | SchematicStructure).type === type,
   );
 }
+
 function executeGlobalSchematicRules(
   _context: SchematicContext,
   schematics: {
@@ -434,6 +450,7 @@ function executeGlobalSchematicRules(
     };
   },
   parentTaskIds: TaskId[] = [],
+  projectName: string,
   globalSettings?: {
     [key: string]: {
       [prop: string]: any;
@@ -450,6 +467,7 @@ function executeGlobalSchematicRules(
         { globalSettings },
         parentTaskIds,
         '/',
+        projectName,
       ),
     );
   }
@@ -472,6 +490,7 @@ function executeExternalSchematicRules(
   path: string,
   _context: SchematicContext,
   parentTaskIds: TaskId[],
+  projectName: string,
 ): TaskId[] {
   const taskIds: TaskId[] = [];
 
@@ -502,6 +521,7 @@ function executeExternalSchematicRules(
           _context,
           parentTaskIds,
           name,
+          projectName,
         ),
       );
     }
@@ -530,10 +550,12 @@ function createExternalSchematicCall(
   context: SchematicContext,
   parentTaskIds: TaskId[],
   name?: string,
+  project?: string,
 ): TaskId {
   return context.addTask(
     new RunSchematicTask(schematic.collection!, schematic.schematicName!, {
       path,
+      project,
       ...settings,
       ...(name ? { name } : {}),
     }),
@@ -542,15 +564,15 @@ function createExternalSchematicCall(
 }
 
 function removeDuplicates(tasks: TaskId[]): TaskId[] {
-  const uniqueTaskIds = new Set<number>();
-  const uniqueTasks: TaskId[] = [];
+    const uniqueTaskIds = new Set<number>();
+    const uniqueTasks: TaskId[] = [];
 
-  for (const task of tasks) {
-    if (!uniqueTaskIds.has(task.id)) {
-      uniqueTaskIds.add(task.id);
-      uniqueTasks.push(task);
+    for (const task of tasks) {
+        if (!uniqueTaskIds.has(task.id)) {
+            uniqueTaskIds.add(task.id);
+            uniqueTasks.push(task);
+        }
     }
-  }
 
-  return uniqueTasks;
+    return uniqueTasks;
 }
