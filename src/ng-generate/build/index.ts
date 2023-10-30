@@ -62,17 +62,17 @@ export function executeWorkspaceSchematics(options: BuildOptions): Rule {
       // ]);
       await processProjects(context, projects, deepCopy(settings), tree, taskIds);
 
-      console.log(`
-+------------------------------------------------+
-|                                                |
-|             🎉  CONGRATULATIONS!  🎉           |
-|                                                |
-|                  Process finished              |
-|                                                |
-|           🚀  Great job! Keep it up!  🚀       |
-|                                                |
-+------------------------------------------------+
-`);
+      //       console.log(`
+      // +------------------------------------------------+
+      // |                                                |
+      // |             🎉  CONGRATULATIONS!  🎉           |
+      // |                                                |
+      // |                  Process finished              |
+      // |                                                |
+      // |           🚀  Great job! Keep it up!  🚀       |
+      // |                                                |
+      // +------------------------------------------------+
+      // `);
 
       return chain([]);
     } catch (err) {
